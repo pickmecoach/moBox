@@ -1,0 +1,92 @@
+.moBox-overlay {
+	position: fixed;
+	z-index: 9998;
+	top: 0;
+	left: 0;
+	opacity: 0;
+	width: 100%;
+	height: 100%;
+	transition: 0.1s opacity ease;
+	background: rgba(0,0,0,0.6);
+}
+
+.moBox-overlay.moBox-overlay_fade {
+	display: block;
+	opacity: 0;
+	transition: 0.3s opacity 0.3s ease;
+}
+
+.moBox-overlay.moBox-overlay_fade[data-state="open"]{
+	top: 0;
+	transition: 0.3s opacity ease;
+	opacity: 1;
+}
+
+.moBox-overlay[data-state="open"] {
+	opacity: 1;
+}
+
+.moBox-modal {
+	position: fixed;
+	z-index: 9999;
+	top: 50%;
+	left: 50%;
+	opacity: 0;
+	width: 100%;
+	padding: 25px 20px;
+	transition: 0.1s opacity ease;
+	-webkit-transform: translate(-50%, -50%);
+	-moz-transform: translate(-50%, -50%);
+	-ms-transform: translate(-50%, -50%);
+	transform: translate(-50%, -50%);
+	border-radius: 15px;
+	background: #fff;
+	text-align: center;
+}
+
+.moBox-modal.moBox-modal_drop {
+	top: -300%;
+	opacity: 1;
+	display: block;
+	transition: 0.5s top ease-out;
+}
+
+.moBox-modal.moBox-modal_drop[data-state="open"] {
+	top: 50%;
+	transition: all 0.3s ease;
+}
+
+.moBox-modal[data-state="open"] {
+	opacity: 1;
+}
+.moBox-modal[data-state="open"][data-anchored] {
+	top: 20px;
+	-webkit-transform: translate(-50%, 0);
+	-moz-transform: translate(-50%, 0);
+	-ms-transform: translate(-50%, 0);
+	transform: translate(-50%, 0);
+}
+
+.moBox-close {
+	font-family: sans-serif;
+	font-size: 25px;
+	font-weight: 700;
+	line-height: 12px;
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	padding: 3px 7px 7px;
+	color: #fff;
+	border: 0;
+	outline none;
+	background: #c0392b;
+}
+.moBox-close:hover {
+	background: #e74c3c;
+	text-shadow: 0 0 3px #ccc;
+}
+.moBox-content {
+	display: inline-block;
+	text-align: start;
+}
+
