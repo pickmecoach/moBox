@@ -1,18 +1,23 @@
-!(function(window) {
-	window.moBox = function(opts) {
+!(function(window){
+	window.moBox = function(options) {
+		var doc = document;
 
-		/*
-		* Переписываем стандартные настройки. Функция вызывается при инициализации
-		* нового модального окна, если был передан объект с натройками.
-		*
-		* @pamams:
-		* {source | object} - объект с начальными настройками.
-		* {reSource} - объект с пользовательскими настройками.
-		*
-		* Возвращает объект настроек с начальными настройками, переписанными
-		* переданными пользовательскими настройками.
-		*/
-		function redefineDefaults(source, reSource) {
+		function _getScrollBarWidth() {
+			var el = document.createElement('div'),
+			scrWidth;
+			el.style.cssText = 'overflow: scroll; width: 100px; height: 100px; position:absolute; bottom: 100%';
+			doc.body.appendChild(el);
+			scrWidth = el.offsetWidth - el.clientWidth;
+			doc.body.removeChild(el);
+			return scrWidth + 'px';
+		}
+
+		function _getTransition() {
+			var el = doc.createElement('div');
+			return (el.style.WebkitTransition) ? "webkitTransitionEnd" : 'transitionend';
+		}
+
+		function _redefineDefaults(source, reSource) {
 			var prop, ret = source;
 			for (prop in reSource) {
 				if (reSource.hasOwnProperty(prop)) {
@@ -22,92 +27,16 @@
 			return ret;
 		}
 
-		/*
-		* Узнаем какое событие на окончание перехода используется в данном браузере.
-		*
-		* Возвращает либо префиксное (для старых браузеров), либо стандартное transitionend.
-		*/
-		function getTransition() {
-			var el = document.createElement('div');
-			return (el.style.WebkitTransition) ? "webkitTransitionEnd" : 'transitionend';
-		}
-
-		/*
-		* Функция инициализации модального окна.
-		*/
-		function build() {
-			var content, // ссылка на контент модального окна.
-			contentWrapper, // обертка для контента.
-			container; // временный DocumentFragment для вставки в body.
-
-			// Если переданный контент - DOM-объект, достаем из него содержимое,
-			// либо просто передаем строку для вставки в модальное окно.
-			if (typeof this.options.content === 'object') {
-				content = this.options.content.innerHTML;
-			} else {
-				content = this.options.content;
-			}
-
-			// Создаем временный фрагмент.
-			container = document.createDocumentFragment();
-
-			this.modal = document.createElement('div');
-			this.modal.className = 'moBox-modal moBox-modal_' + this.options.modalType;
-			this.modal.style.boxSizing = 'border-box';
-			if (this.modal.style.WebkitBoxSizing) this.modal.style.WebkitBoxSizing = 'border-box';
-			if (this.modal.style.MozBoxSizing) this.modal.style.MozBoxSizing = 'border-box';
-			this.modal.style.maxWidth = this.options.maxWidth + 'px';
-			this.modal.style.minWidth = this.options.minWidth + 'px';
-
-			if (this.options.closeButton === true) {
-				this.closeButton = document.createElement('button');
-				this.closeButton.className = 'moBox-close';
-				this.closeButton.innerHTML = 'x';
-				this.modal.appendChild(this.closeButton);
-			}
-
-			if (this.options.overlay === true) {
-				this.overlay = document.createElement('div');
-				this.overlay.className = 'moBox-overlay moBox-overlay_' + this.options.overlayType;
-				container.appendChild(this.overlay);
-			}
-
-			contentWrapper = document.createElement('div');
-			contentWrapper.className = 'moBox-content';
-			contentWrapper.innerHTML = content;
-			contentWrapper.style.boxSizing = 'border-box';
-			if (contentWrapper.style.WebkitBoxSizing) contentWrapper.style.WebkitBoxSizing = 'border-box';
-			if (contentWrapper.style.MozBoxSizing) contentWrapper.style.MozBoxSizing = 'border-box';
-			this.modal.appendChild(contentWrapper);
-
-			container.appendChild(this.modal);
-
-			document.body.appendChild(container);
-		}
-
-		function initEvents() {
+		function _initEvents() {
 			if (this.closeButton) {
 				this.closeButton.addEventListener('click', this.close.bind(this));
 			}
-
 			if (this.overlay) {
 				this.overlay.addEventListener('click', this.close.bind(this));
 			}
 		}
 
-		var defaults = {
-			modalType: 'slide-top',
-			overlayType: 'fade',
-			maxWidth: 600,
-			minWidth: 280,
-			overlay: true,
-			content: '',
-			closeButton: true,
-			gallery: false,
-			animation: true
-		};
-
-		function fadeOut(obj, callback) {
+		function _fadeOut(obj, callback) {
 			var os = obj.style;
 			os.opacity = 1;
 			(function fn(){
@@ -120,7 +49,7 @@
 			})()
 		}
 
-		function fadeIn(obj, callback) {
+		function _fadeIn(obj, callback) {
 			var os = obj.style;
 			os.visibility = '';
 			os.opacity = 0;
@@ -134,137 +63,125 @@
 			})()
 		}
 
-		function boxScroll(box, overlay) {
-			var winH = window.innerHeight,
-			topMax,
-			topMin,
-			shift = 80,
-			bs = box.style,
-			inited = false;
-			function s(e) {
-				if (!inited) {
-					topMax = box.getBoundingClientRect().top;
-					topMin = -box.offsetHeight + winH - topMax;
-					bs.top = topMax + 'px';
-				}
-				var next = Math.ceil(parseInt(bs.top) - e.deltaY);
-				if (next < topMax && next > topMin) {
-					bs.top = next + 'px';
-				} else {
-					if (next >= topMax) {
-						bs.top = topMax + 'px';
-					} else {
-						bs.top = topMin + 'px';
-					}
-				}
-				inited = true;
-				e.preventDefault();
+		function _build() {
+			var _content, 
+			_contentWrapper,
+			_panel,
+			opts = this.options,
+			modal = this.modal,
+			container = this.container,
+			cBtn = this.closeButton,
+			ovlay = this.overlay;
+			
+			if (typeof opts.content === 'object') {
+				_content = opts.content.innerHTML;
+			} else {
+				_content = opts.content;
 			}
-			overlay.addEventListener('mousewheel', s);
+			container = doc.createElement('div');
+			container.className = 'moBox';
+
+			_panel = doc.createElement('div');
+			_panel.className = 'moBox__panel';
+
+			modal = doc.createElement('div');
+			modal.className = 'moBox__modal moBox__modal_' + opts.modalType;
+			modal.style.maxWidth = opts.maxWidth + 'px';
+			modal.style.minWidth = opts.minWidth + 'px';
+			modal.style.cssText = 'max-width: ' + opts.maxWidth + 'px; min-width: ' + opts.minWidth + 'px;';
+			modal.appendChild(_panel);
+
+			if (opts.closeButton === true) {
+				cBtn = doc.createElement('button');
+				cBtn.className = 'moBox__close';
+				cBtn.innerHTML = 'x';
+				modal.appendChild(cBtn);
+			}
+
+			_contentWrapper = doc.createElement('div');
+			_contentWrapper.className = 'moBox__content';
+			_contentWrapper.innerHTML = _content;
+			modal.appendChild(_contentWrapper);
+
+			if (opts.overlay === true) {
+				ovlay = doc.createElement('div');
+				ovlay.className = 'moBox__overlay moBox__overlay_' + opts.overlayType;
+			}
+			ovlay.appendChild(modal);
+			container.appendChild(ovlay);
+			this.modal = modal;
+			this.container = container;
+			this.closeButton = cBtn;
+			this.overlay = ovlay;
+
+			doc.body.appendChild(this.container);
 		}
 
-		function switchModal(viewport, contentBox, next) {
-			var vs = viewport.style,
-			nextW,
-			nextH;
+		var defaults = {
+			modalType: 'fade',
+			overlayType: 'fade',
+			maxWidth: 600,
+			minWidth: 280,
+			overlay: true,
+			content: '',
+			closeButton: true,
+			animation: true
+		};
 
-			vs.width = viewport.getBoundingClientRect().width + 'px';
-			vs.height = viewport.getBoundingClientRect().height + 'px';
-			var prevW = parseInt(vs.width, 10),
-			prevH = parseInt(vs.height, 10);
-			fadeOut(contentBox, function() {
-				contentBox.innerHTML = next;
-				contentBox.style.display = '';
-				contentBox.style.visibility = 'hidden';
-				nextW = contentBox.getBoundingClientRect().width + parseInt(getComputedStyle(viewport).paddingLeft, 10) * 2;
-				nextH = contentBox.getBoundingClientRect().height + parseInt(getComputedStyle(viewport).paddingTop, 10) * 2;
-				vs.width = (nextW > vs.maxWidth) ? nextW + 'px' : vs.width; 
-				vs.height = nextH + 'px';
-				if (nextH > window.innerHeight) {
-					vieport.setAttribute('data-anchored', '');
-				}
-				setTimeout(function() {
-					fadeIn(contentBox);
-				}, 300);
-			});
-		}
-
-		var MoBox = function() {
+		function BigBoss() {
 			this.modal = null;
 			this.overlay = null;
 			this.closeButton = null;
+			this.container = null;
+			this.transitionEnd = _getTransition();
+			this.scrollBarWidth = _getScrollBarWidth();
 
 			if (arguments[0] && typeof arguments[0] === 'object') {
-				this.options = redefineDefaults(defaults, arguments[0]);
+				this.options = _redefineDefaults(defaults, arguments[0]);
 			} else {
 				this.options = defaults;
 			}
 
-			this.transitionEnd = getTransition();
-
 			this.open = function() {
-				build.call(this);
-				initEvents.call(this);
+				_build.call(this);
+				_initEvents.call(this);
 
-				var m = this.modal;
-				window.getComputedStyle(m).height;
-				m.setAttribute('data-state', 'open');
-				this.overlay.setAttribute('data-state', 'open');
+				var m = this.modal,
+				o = this.overlay;
+				
+				getComputedStyle(m).height;
+				this.container.setAttribute('data-state', 'open');
+				doc.body.style.cssText = 'overflow: hidden; padding-right: ' + this.scrollBarWidth + ';';
 				if (m.offsetHeight > window.innerHeight) {
 					m.setAttribute('data-anchored', '');
-					boxScroll(m, this.overlay);
+					o.style.overflow = 'auto';
 				}
 			};
 
-			this.close = function() {
-				// document.removeEventListener('mousewheel', s)
-				var that = this,
-				m = this.modal;
+			this.close = function(e) {
+				e.stopPropagation();
+				if (e.target !==  this.overlay && e.target !== this.closeButton) return;
+				var m = this.modal,
+				c = this.container,
 				o = this.overlay;
-				m.removeAttribute('data-state');
-				m.style.top = '';
-				o.removeAttribute('data-state');
+
+				c.removeAttribute('data-state');
 
 				if (!this.options.animation) {
-					m.parentNode.removeChild(m);
-					o.parentNode.removeChild(o);
+					c.parentNode.removeChild(c);
 				} else {
-					m.addEventListener(this.transitionEnd, function() {
-						m.parentNode.removeChild(m);
-					});
-					o.addEventListener(this.transitionEnd, function() {
-						o.parentNode.removeChild(o);
+					o.addEventListener(this.transitionEnd, function(e) {
+						if (e.target === this && doc.body.contains(c)) {
+							e.stopImmediatePropagation();
+							c.parentNode.removeChild(c);
+							doc.body.style.cssText = '';
+						}
 					});
 				}
 			};
-
-			this.changeContent = function(newContent) {
-				var contentBox = document.querySelector('.moBox-content'),
-				nextContent;
-				if (typeof newContent === 'object') {
-					nextContent = newContent.innerHTML;
-				} else {
-					nextContent = newContent;
-				}
-				if (this.options.animation === true) {
-					switchModal(this.modal, contentBox, nextContent);
-				} else {
-					contentBox.innerHTML = nextContent;
-				}
-			};
-
 		}
-		return new MoBox(opts);
-	};
+
+		return new BigBoss(options);
+	}
 })(window);
 
-var m = moBox({
-	modalType: "drop",
-	content: document.querySelector('.order'),
-	// content: "HELLO WORLD! adsasdasd asdas asd asd asd asdasdasda sda dasd adsa dasd asda sdas asda sdasdasd asdfefs gvsfsefas ",
-	animation: true
-});
-var d = moBox({modalType: "drop"});
-document.querySelector('.button').addEventListener('click', function() {
-	m.open();
-});
